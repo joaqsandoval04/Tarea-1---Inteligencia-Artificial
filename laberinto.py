@@ -16,8 +16,9 @@ BLUE = (0,0,255)
 SIZE = (800,800)
 
 def main():
-    laberinto = MazeGenerator(10)
-    laberinto.create_maze("laberinto10x10.txt")
+    laberinto = MazeGenerator(50)
+    #laberinto.create_maze_file("laberinto10x10.txt")
+    laberinto.create_maze()
 
     tamaño_laberinto = laberinto.get_size()
     tamaño_pixeles = int(SIZE[1])/tamaño_laberinto
