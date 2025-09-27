@@ -1,0 +1,8 @@
+.idea/
+
+# Entornos Virtuales
+.env
+.venv
+env/
+venv/
+ENV/
