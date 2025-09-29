@@ -145,3 +145,10 @@ class MazeGenerator:
 
     def get_size(self):
         return self._size
+
+    # Encuentra la posición actual del agente
+    def find_agent_position(self):
+        agent_pos = np.where(self._laberinto == 2)
+        if len(agent_pos[0]) > 0:
+            return (agent_pos[0][0], agent_pos[1][0])
+        return None
