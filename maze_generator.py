@@ -22,6 +22,7 @@ class MazeGenerator:
         else:
             self._laberinto[0][(self._size + 1) // 2] = 2
         pos_agente = tuple(map(int, np.argwhere(self._laberinto == 2)[0]))
+        # ============== POSICIONAR AL AGENTE ==============
 
         # Posicionar la salida real en uno de los bordes
         x,y,v = random.randint(0,self._size - 1), random.randint(0,self._size - 1), random.randint(0,1)
@@ -32,6 +33,8 @@ class MazeGenerator:
         if v == 0:
             if x <= size//2:
                 x = 0
+                if y == pos_agente[1]:
+                    y += 1
             else:
                 x = size - 1
         else:
@@ -41,7 +44,7 @@ class MazeGenerator:
                 y = size - 1
         self._laberinto[x][y] = 4
 
-        # ============== POSICIONAR AL AGENTE ==============
+
 
         # ============== CREAR SALIDAS FALSAS ==============
         c_salidas = random.randint(0,(self._size // 2) - self._size // 4)
@@ -85,6 +88,7 @@ class MazeGenerator:
             vacios = list(zip(*np.where(self._laberinto == 0)))
 
         # ============== CREAR MUROS ==============
+        #print(self._laberinto)
 
     def create_maze_file(self, file):
         self._laberinto = np.loadtxt(file, dtype=int)
@@ -103,7 +107,6 @@ class MazeGenerator:
         for i in range(self._size//10):
             (muro.append(random.choice(muros)))
             vacio.append(random.choice(vacios))
-            print("muros agregado", i)
 
         for i in range(100):
             # Intercambiar posiciones
@@ -114,6 +117,7 @@ class MazeGenerator:
             # Validar
             if self.is_a_path(new):
                 self._laberinto = new
+                #print(f"=== NEW ===\n{self._laberinto}")
                 return True
 
     def is_a_path(self, laberinto):
@@ -152,8 +156,37 @@ class MazeGenerator:
         return self._size
 
     # Encuentra la posición actual del agente
-    def find_agent_position(self):
-        agent_pos = np.where(self._laberinto == 2)
-        if len(agent_pos[0]) > 0:
-            return (agent_pos[0][0], agent_pos[1][0])
+    def get_agent_pos(self):
+        agent_pos = tuple(map(int, np.argwhere(self._laberinto == 2)[0]))
+        if len(agent_pos) > 0:
+            return agent_pos
         return None
+
+    def get_exits_pos(self):
+        if np.argwhere(self._laberinto == 3).size == 0:
+            salidas = [tuple(map(int, np.argwhere(self._laberinto == 4)[0]))]
+        else:
+            salidas_1 = [tuple(map(int, pos)) for pos in np.argwhere(self._laberinto == 3)]
+            salidas_2 = [tuple(map(int, np.argwhere(self._laberinto == 4)[0]))]
+            salidas = salidas_1 + salidas_2
+        if len(salidas) > 0:
+            return salidas
+        return None
+
+    def get_obj_in_pos(self, pos):
+        return self._laberinto[pos]
+
+    def get_initial_pos(self):
+        if self._size%2 == 0:
+            y = self._size // 2
+        else:
+            y = (self._size + 1) // 2
+        return 0, y
+
+    def set_obj_in_pos(self, pos, obj: int):
+        self._laberinto[pos] = obj
+
+    def set_agent_pos(self, pos):
+        pos_agente = tuple(map(int, np.argwhere(self._laberinto == 2)[0]))
+        self._laberinto[pos_agente] = 0
+        self._laberinto[pos] = 2

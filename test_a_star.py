@@ -1,9 +1,10 @@
-import pygame
 import sys
+
+from laberinto import recalcular_camino
 from maze_generator import MazeGenerator
 from a_star import AStar
-import numpy as np
-import copy
+import pygame
+import time
 
 # Crear pantalla
 pygame.init()
@@ -18,56 +19,18 @@ PURPLE = (128, 0, 128)
 
 SIZE = (800, 800)
 
-# Recalcula el camino desde la posición actual del agente
-# (Se usa cuando el laberinto muta o llega a una salida falsa)
-def recalcular_camino(laberinto: MazeGenerator, solver, agente_pos, salidas_visitadas):
-    if agente_pos is None:
-        agente_pos = laberinto.get_agent_pos()
-    lab = copy.deepcopy(laberinto)
-
-    # Crear copia del laberinto para no modificar el original
-    #laberinto = laberinto.get_laberinto().copy()
-    
-    # Mover al agente de la posicion inicial a su nueva posicion
-    #pos_inicial = laberinto.get_initial_pos()
-    #pos_inicial = list(zip(*np.where(laberinto == 2)))[0]
-    lab.set_agent_pos(agente_pos)
-    #laberinto[pos_inicial] = 0
-    #laberinto[agente_pos] = 2
-
-    # "Bloquear" temporalmente las salidas (falsas) ya visitadas, para evitar que no intente ir a ellas de nuevo
-    # Las salidas (3) pasan a ser un muro (1)
-    print(f"SALIDAS VISITADAS = ")
-    for salida in salidas_visitadas:
-        print(f"{salida}")
-        if lab.get_obj_in_pos(salida) == 3:
-            lab.set_obj_in_pos(salida, 0)
-        """
-        if laberinto[salida] == 3:
-            laberinto[salida] = 0
-        """
-
-    # Ejecutar A* desde la posición actual
-    caminos, exito = solver.solve(lab)    # Necesita objeto laberinto
-
-    # Restaurar valores las salidas
-    for salida in salidas_visitadas:
-        lab.set_obj_in_pos(salida, 3)
-        #laberinto[salida] = 3
-    #print(f"Posición agente = {laberinto.get_agent_pos()}")
-    # Si encuentra un camino valido
-    if exito and caminos:
-        return caminos[0], agente_pos, True  # camino, posicion, exito
-    else:
-        return [], agente_pos, False
-
-def main():
-    laberinto = MazeGenerator(10)
+def test_a_star(size,rep):
+    laberinto = MazeGenerator(size)
     laberinto.create_maze()
+    total_solves = 0
+    total_time = 0
+
+    solved = False
+    solving = False
 
     tamaño_laberinto = laberinto.get_size()
     tamaño_pixeles = int(SIZE[1]) / tamaño_laberinto
-    #print(tamaño_pixeles)
+    print(tamaño_pixeles)
 
     # Control de tiempo
     clock = pygame.time.Clock()
@@ -87,84 +50,84 @@ def main():
     agent_moving_img = pygame.image.load("resources/Hornet.webp")
     agent_moving_img = pygame.transform.scale(agent_moving_img, (int(tamaño_pixeles), int(tamaño_pixeles)))
 
-    laberinto_copy = laberinto.get_laberinto().copy()
-
-    while True:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                sys.exit()
-            elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_SPACE:
-                    auto_solving = True
-                    agente_pos = laberinto.get_agent_pos()
-                    salidas_visitadas = set()
-                    path_index = 0
-                    movimiento_agente = False
-
-                    camino_actual, agente_pos, exito = recalcular_camino(laberinto, solver, agente_pos, salidas_visitadas)
-                    if exito:
-                        movimiento_agente = True
-                elif event.key == pygame.K_r:
-                    laberinto.create_maze()
-                    auto_solving = False
-                    agente_pos = None
-                    salidas_visitadas = set()
-                    camino_actual = []
-                    path_index = 0
-                    movimiento_agente = False
-                    agent_moving_img = pygame.transform.scale(pygame.image.load("resources/Hornet.webp"),
-                                                              (int(tamaño_pixeles), int(tamaño_pixeles)))
+    tiempo_inicio = time.time()
+    while total_solves < rep:
 
         now = pygame.time.get_ticks()
 
+        if solved:
+            laberinto.create_maze()
+            auto_solving = False
+            agente_pos = None
+            salidas_visitadas = set()
+            camino_actual = []
+            path_index = 0
+            movimiento_agente = False
+            agent_moving_img = pygame.transform.scale(pygame.image.load("resources/Hornet.webp"),
+                                                      (int(tamaño_pixeles), int(tamaño_pixeles)))
+            solved = False
+
+        # Empezar a mover agente
+        if not solving:
+            auto_solving = True
+            agente_pos = laberinto.get_agent_pos()
+            salidas_visitadas = set()
+            path_index = 0
+            movimiento_agente = False
+            tiempo_inicio = time.time()
+            camino_actual, agente_pos, exito = recalcular_camino(laberinto, solver, agente_pos, salidas_visitadas)
+            if exito:
+                movimiento_agente = True
+                solving = True
+
         ### -- Actualizar laberinto (mutar) cada 5 segundos
-        if now - time_update_maze >= 5000:
+        if now - time_update_maze >= 50:
             if laberinto.update_maze():
                 time_update_maze = now
                 print("Laberinto mutó")
 
                 # Si se está resolviendo automáticamente, recalcular el camino
                 if auto_solving:
-                    path_index = 0
+                    #path_index = 0
                     camino_actual, agente_pos, exito = recalcular_camino(laberinto, solver, agente_pos, salidas_visitadas)
-                    #print("MURO ACTUALIZADO, RECALCULANDO CAMINO ACTUAL\n")
-                    #print(f"camino_actual = {camino_actual}, Agente_pos = {agente_pos}, exito = {exito}")
                     if exito:
                         movimiento_agente = True
                         time_move_agent = now
 
         # Mover al agente por el camino
-        if movimiento_agente and camino_actual and now - time_move_agent >= 200:
+        if movimiento_agente and camino_actual and now - time_move_agent >= 1:
             if path_index < len(camino_actual):
-                #print("PASO 1")
                 agente_pos = camino_actual[path_index]
-                #print(f"agente_pos = camino_actual[{path_index}] = {agente_pos}")
                 path_index += 1
                 time_move_agent = now
 
+                print(f"Agente en ({int(agente_pos[0])}, {int(agente_pos[1])})")
+
                 # Verifica si el camino se acabó
                 if path_index >= len(camino_actual):
-                    #print("PASO 2")
                     movimiento_agente = False
 
                     # Verifica si la salida es real (4) o falsa (3)
                     maze_data = laberinto.get_laberinto()
-                    print(f"agente_pos = {agente_pos} & maze_data = {maze_data}")
                     if agente_pos and maze_data[agente_pos] in [3, 4]:
-                    #if agente_pos and laberinto_copy[agente_pos] in [3,4]:
                         if maze_data[agente_pos] == 4:
-                            print("Agente llegó a la salida real")
+                            tiempo_fin = time.time()
+                            duracion = tiempo_fin - tiempo_inicio
+                            total_time += duracion
+                            print(f"✔️ Laberinto resuelto en {duracion} segundos")
                             auto_solving = False
+                            total_solves += 1
+                            if total_solves == rep:
+                                break
+                            solved = True
+                            solving = False
                         else:
                             print("Salida falsa, buscando siguiente salida...")
                             salidas_visitadas.add(agente_pos)
-                            print(f"salidas_visitadas = {salidas_visitadas}")
                             path_index = 0
 
                             # Recalcular desde esta posición
                             camino_actual, agente_pos, exito = recalcular_camino( laberinto, solver, agente_pos, salidas_visitadas)
-                            #print("SALIDA FALSA ENCONTRADA, RECALCULANDO CAMINO ACTUAL\n")
-                            #print(f"camino_actual = {camino_actual}, Agente_pos = {agente_pos}, exito = {exito}")
                             if exito:
                                 movimiento_agente = True
                                 time_move_agent = now
@@ -224,12 +187,12 @@ def main():
             if salidas_visitadas:
                 exits_text = font.render(f"Salidas falsas: {len(salidas_visitadas)}", True, PURPLE)
                 screen.blit(exits_text, (10, 90))
-        #laberinto.set_agent_pos(agente_pos)
-        #print(f"agent pos = {laberinto.get_agent_pos()}")
+
         # Actualizar pantalla
         pygame.display.flip()
-        clock.tick(60)  # 60 FPS
+
+    # --- Mostrar resumen final ---
+    print(f"Demoró {total_time*1000} segundos")
 
 
-if __name__ == "__main__":
-    main()
+test_a_star(10,100)

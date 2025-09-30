@@ -1,6 +1,6 @@
 import heapq
 import numpy as np
-
+from maze_generator import  MazeGenerator
 class AStar:
     def __init__(self):
         self.nodos_explorados = 0
@@ -11,6 +11,7 @@ class AStar:
 
     # Encuentra las casillas vacias en las que se puede mover el agente
     def get_vecinos(self, pos, laberinto):
+        laberinto_copy = laberinto.get_laberinto()
         fila, columna = pos
         vecinos = []
 
@@ -20,15 +21,15 @@ class AStar:
         # Verifica que no se pase de los limites del laberínto y que no sea un muro (1)
         for x, y in movimientos:
             new_fila, new_columna = fila + x, columna + y
-            if 0 <= new_fila < laberinto.shape[0] and 0 <= new_columna < laberinto.shape[1] and laberinto[new_fila, new_columna] != 1:
+            if 0 <= new_fila < laberinto_copy.shape[0] and 0 <= new_columna < laberinto_copy.shape[1] and laberinto_copy[new_fila, new_columna] != 1:
                 vecinos.append(((new_fila, new_columna), 1.0))
 
         for x, y in movimientos_diag:
             new_fila, new_columna = fila + x, columna + y
-            if not (0 <= new_fila < laberinto.shape[0] and 0 <= new_columna < laberinto.shape[1] and laberinto[new_fila, new_columna] != 1):
+            if not (0 <= new_fila < laberinto_copy.shape[0] and 0 <= new_columna < laberinto_copy.shape[1] and laberinto_copy[new_fila, new_columna] != 1):
                 continue
 
-            if laberinto[fila + x, columna] != 1 and laberinto[fila, columna + y] != 1:
+            if laberinto_copy[fila + x, columna] != 1 and laberinto_copy[fila, columna + y] != 1:
                 vecinos.append(((new_fila, new_columna), 1.414))
         return vecinos
 
@@ -48,15 +49,13 @@ class AStar:
 
     # Busca todas las salidas en la grilla
     def encontrar_salidas(self, laberinto):
-        salidas = list(zip(*np.where(laberinto == 3))) + list(zip(*np.where(laberinto == 4)))
-        return salidas
+        return laberinto.get_exits_pos()
 
     def encontrar_entrada(self, laberinto):
-        agente_pos = np.where(laberinto == 2)
-        return agente_pos[0][0], agente_pos[1][0]
+        return laberinto.get_agent_pos()
 
     # Resuelve el laberinto buscando la salida hasta encontrar la real
-    def solve(self, laberinto):
+    def solve(self, laberinto: MazeGenerator):
         posicion_actual = self.encontrar_entrada(laberinto)
         salidas_visitadas = set()
         todos_los_caminos = []
@@ -83,6 +82,7 @@ class AStar:
             # Calcula distancia mínima hacia cualquier salida disponible
             min_h = self.heuristica(posicion_actual, salidas_disponibles[0])
             for salida in salidas_disponibles:
+                #print(f"salida = {salida}")
                 distancia = self.heuristica(posicion_actual, salida)
                 if distancia < min_h:
                     min_h = distancia
@@ -113,6 +113,7 @@ class AStar:
                     salida_encontrada = actual
                     break
 
+
                 for vecino, costo in self.get_vecinos(actual, laberinto):
                     if vecino in visitado:
                         continue
@@ -140,8 +141,14 @@ class AStar:
             salidas_visitadas.add(salida_encontrada)
 
             # Verifica la salida si es real (4) o falsa (3)
-            if laberinto[salida_encontrada[0], salida_encontrada[1]] == 4:
-                self.nodos_explorados = total_nodos
-                return todos_los_caminos, True
+            if salida_encontrada is not None:
+                #print(f"salidas encontradas{salida_encontrada}")
+                if laberinto.get_laberinto()[salida_encontrada[0], salida_encontrada[1]] == 4:
+                    self.nodos_explorados = total_nodos
+                    return todos_los_caminos, True
+                else:
+                    posicion_actual = salida_encontrada
+                    laberinto.set_agent_pos(salida_encontrada)
             else:
                 posicion_actual = salida_encontrada
+                laberinto.set_agent_pos(salida_encontrada)
