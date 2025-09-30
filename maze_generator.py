@@ -98,14 +98,19 @@ class MazeGenerator:
             return False
         # Elegir muro y vacio aleatorio
 
-        muro = random.choice(muros)
-        vacio = random.choice(vacios)
+        muro = []
+        vacio = []
+        for i in range(self._size//10):
+            (muro.append(random.choice(muros)))
+            vacio.append(random.choice(vacios))
+            print("muros agregado", i)
 
         for i in range(100):
             # Intercambiar posiciones
             new = self._laberinto.copy()
-            new[muro] = 0
-            new[vacio] = 1
+            for j in range(self._size//10):
+                new[muro[j]] = 0
+                new[vacio[j]] = 1
             # Validar
             if self.is_a_path(new):
                 self._laberinto = new

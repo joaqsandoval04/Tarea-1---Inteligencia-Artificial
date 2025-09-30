@@ -51,7 +51,7 @@ def recalcular_camino(laberinto, solver, agente_pos, salidas_visitadas):
         return [], agente_pos, False
 
 def main():
-    laberinto = MazeGenerator(50)
+    laberinto = MazeGenerator(30)
     laberinto.create_maze()
 
     tamaño_laberinto = laberinto.get_size()
