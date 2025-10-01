@@ -33,6 +33,19 @@ Luego de eso, puedes usar los siguientes botones del teclado:
 - G - Para usar el `algoritmo genético (cromosomas)`
 - R - Para reiniciar el laberinto
 
+## Políticas de Comportamiento
+- El agente puede desplazarse en 8 direcciones (incluyendo diagonales).
+- El camino se recalcula cuando el laberinto muta o cuando se alcanza una salida falsa.
+- Las salidas falsas ya visitadas son marcadas y excluidas de búsquedas posteriores.
+- El agente desconoce cuál es la salida verdadera; debe explorar hasta encontrarla.
+- El agente siempre inicia en una posición predeterminada del laberinto.
+## Representación Visual
+La interfaz gráfica utiliza el siguiente código de colores:
+- Verde: Posición inicial del agente
+- Rojo: Salidas falsas
+- Azul: Salida real (solo visible para el usuario)
+- Negro: Muros
+- Blanco: Camino transitable
 ## Notas adicionales
 - **Entorno virtual**: Siempre activa el entorno virtual (`.\venv\Scripts\Activate`) antes de ejecutar `python laberinto.py`.
 - Para cambiar el tamaño del laberinto, se nesecita cambiar el numero de `laberinto = MazeGenerator(20)` en el `main()` de `laberinto.py`
