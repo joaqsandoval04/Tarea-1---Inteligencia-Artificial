@@ -7,7 +7,7 @@ from maze_generator import MazeGenerator
 
 
 class GeneticAlgorithm:
-    def __init__(self, max_movimientos=100):
+    def __init__(self, max_movimientos=50):
         self.max_movimientos = max_movimientos
         self.nodos_explorados = 0
 
@@ -27,6 +27,7 @@ class GeneticAlgorithm:
 
     # Evalúa una secuencia de movimientos hacia una salida en específico
     def evaluar(self, individuo, laberinto: MazeGenerator, posicion_inicial, salida):
+        grid = laberinto.get_laberinto()
         posicion_actual = posicion_inicial
         visitado = {posicion_actual}
         num_movimientos = 0
@@ -38,12 +39,12 @@ class GeneticAlgorithm:
             new_pos = (posicion_actual[0] + movimiento[0], posicion_actual[1] + movimiento[1])
 
             # Verificar límites del laberinto
-            if not (0 <= new_pos[0] < laberinto.shape[0] and 0 <= new_pos[1] < laberinto.shape[1]):
+            if not (0 <= new_pos[0] < grid.shape[0] and 0 <= new_pos[1] < grid.shape[1]):
                 colisiones_muros += 1
                 continue
 
             # Verificar colisión con una pared
-            if laberinto[new_pos] == 1:
+            if grid[new_pos] == 1:
                 colisiones_muros += 1
                 continue
 
@@ -75,7 +76,8 @@ class GeneticAlgorithm:
         )
         return (max(0, fitness),)
 
-    def reconstruir_camino(self, individuo, laberinto, posicion_inicial):
+    def reconstruir_camino(self, individuo, laberinto: MazeGenerator, posicion_inicial):
+        grid = laberinto.get_laberinto()
         posicion_actual = posicion_inicial
         path = [posicion_actual]
 
@@ -84,19 +86,18 @@ class GeneticAlgorithm:
             new_pos = (posicion_actual[0] + movimiento[0], posicion_actual[1] + movimiento[1])
 
             # Verificar límites y paredes
-            if not (0 <= new_pos[0] < laberinto.shape[0] and 0 <= new_pos[1] < laberinto.shape[1]) or laberinto[
-                new_pos] == 1:
+            if not (0 <= new_pos[0] < grid.shape[0] and 0 <= new_pos[1] < grid.shape[1]) or grid[new_pos] == 1:
                 continue
 
             posicion_actual = new_pos
             path.append(posicion_actual)
 
             # Si llega a alguna salida (real o falsa)
-            if laberinto[posicion_actual] in [3, 4]:
+            if grid[posicion_actual] in [3, 4]:
                 break
         return path
 
-    def solve(self, laberinto, population_size=150, generations=100):
+    def solve(self, laberinto: MazeGenerator, population_size=30, generations=20):
         posicion_actual = self.encontrar_entrada(laberinto)
         salidas_visitadas = set()
         all_caminos = []
@@ -206,9 +207,8 @@ class GeneticAlgorithm:
             all_caminos.append(camino_encontrado)
             nodos_total += self.nodos_explorados
             salidas_visitadas.add(salida_encontrada)
-
             # Verifica la salida si es real (4) o falsa (3)
-            if laberinto[salida_encontrada[0], salida_encontrada[1]] == 4:
+            if laberinto.get_laberinto()[salida_encontrada[0], salida_encontrada[1]] == 4:
                 self.nodos_explorados = nodos_total
                 return all_caminos, True
             else:

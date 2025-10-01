@@ -2,7 +2,7 @@ import pygame
 import sys
 from maze_generator import MazeGenerator
 from a_star import AStar
-import numpy as np
+from algoritmo_genetico import GeneticAlgorithm
 import copy
 
 # Crear pantalla
@@ -15,55 +15,42 @@ RED = (255, 0, 0)
 BLUE = (0, 0, 255)
 YELLOW = (255, 255, 0)
 PURPLE = (128, 0, 128)
+ORANGE = (255, 165, 0)
 
 SIZE = (800, 800)
 
 # Recalcula el camino desde la posición actual del agente
-# (Se usa cuando el laberinto muta o llega a una salida falsa)
-def recalcular_camino(laberinto: MazeGenerator, solver, agente_pos, salidas_visitadas):
+def recalcular_camino(laberinto: MazeGenerator, solver, agente_pos, salidas_visitadas, algorithm_type="astar"):
     if agente_pos is None:
         agente_pos = laberinto.get_agent_pos()
     lab = copy.deepcopy(laberinto)
 
-    # Crear copia del laberinto para no modificar el original
-    #laberinto = laberinto.get_laberinto().copy()
-    
-    # Mover al agente de la posicion inicial a su nueva posicion
-    #pos_inicial = laberinto.get_initial_pos()
-    #pos_inicial = list(zip(*np.where(laberinto == 2)))[0]
     lab.set_agent_pos(agente_pos)
-    #laberinto[pos_inicial] = 0
-    #laberinto[agente_pos] = 2
 
     # "Bloquear" temporalmente las salidas (falsas) ya visitadas, para evitar que no intente ir a ellas de nuevo
     # Las salidas (3) pasan a ser un muro (1)
-    print(f"SALIDAS VISITADAS = ")
     for salida in salidas_visitadas:
-        print(f"{salida}")
         if lab.get_obj_in_pos(salida) == 3:
             lab.set_obj_in_pos(salida, 0)
-        """
-        if laberinto[salida] == 3:
-            laberinto[salida] = 0
-        """
 
-    # Ejecutar A* desde la posición actual
-    print(lab)
-    caminos, exito = solver.solve(lab)    # Necesita objeto laberinto
+    # Ejecutar el algoritmo correspondiente
+    if algorithm_type == "astar":
+        caminos, exito = solver.solve(lab)
+    else:  # genetico
+        caminos, exito = solver.solve(lab, population_size=30, generations=20)
 
-    # Restaurar valores las salidas
+    # Restaurar valores de las salidas
     for salida in salidas_visitadas:
         lab.set_obj_in_pos(salida, 3)
-        #laberinto[salida] = 3
-    #print(f"Posición agente = {laberinto.get_agent_pos()}")
-    # Si encuentra un camino valido
+
+    # Si encuentra un camino válido
     if exito and caminos:
-        return caminos[0], agente_pos, True  # camino, posicion, exito
+        return caminos[0] if caminos[0] else [], agente_pos, True
     else:
         return [], agente_pos, False
 
 def main():
-    laberinto = MazeGenerator(10)
+    laberinto = MazeGenerator(20)
     laberinto.create_maze()
 
     tamaño_laberinto = laberinto.get_size()
@@ -74,8 +61,12 @@ def main():
     time_update_maze = pygame.time.get_ticks()
     time_move_agent = pygame.time.get_ticks()
 
-    # A* Setup
-    solver = AStar()
+    # Solvers Setup
+    astar_solver = AStar()
+    genetic_solver = GeneticAlgorithm(max_movimientos=100)
+
+    current_solver = None
+    algorithm_type = None
     camino_actual = []
     path_index = 0
     movimiento_agente = False
@@ -93,41 +84,59 @@ def main():
             if event.type == pygame.QUIT:
                 sys.exit()
             elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_SPACE:
+                # Tecla A para A*
+                if event.key == pygame.K_a:
                     auto_solving = True
+                    current_solver = astar_solver
+                    algorithm_type = "astar"
                     agente_pos = laberinto.get_agent_pos()
                     salidas_visitadas = set()
                     path_index = 0
                     movimiento_agente = False
 
-                    camino_actual, agente_pos, exito = recalcular_camino(laberinto, solver, agente_pos, salidas_visitadas)
+                    camino_actual, agente_pos, exito = recalcular_camino( laberinto, current_solver, agente_pos, salidas_visitadas, algorithm_type)
                     if exito:
                         movimiento_agente = True
+
+                # Tecla G para Genético
+                elif event.key == pygame.K_g:
+                    auto_solving = True
+                    current_solver = genetic_solver
+                    algorithm_type = "genetic"
+                    agente_pos = laberinto.get_agent_pos()
+                    salidas_visitadas = set()
+                    path_index = 0
+                    movimiento_agente = False
+
+                    camino_actual, agente_pos, exito = recalcular_camino( laberinto, current_solver, agente_pos, salidas_visitadas, algorithm_type)
+                    if exito:
+                        movimiento_agente = True
+
+                # Tecla R para reiniciar
                 elif event.key == pygame.K_r:
                     laberinto.create_maze()
                     auto_solving = False
+                    current_solver = None
+                    algorithm_type = None
                     agente_pos = None
                     salidas_visitadas = set()
                     camino_actual = []
                     path_index = 0
                     movimiento_agente = False
-                    agent_moving_img = pygame.transform.scale(pygame.image.load("resources/Hornet.webp"),
-                                                              (int(tamaño_pixeles), int(tamaño_pixeles)))
+                    agent_moving_img = pygame.transform.scale( pygame.image.load("resources/Hornet.webp"), (int(tamaño_pixeles), int(tamaño_pixeles)))
 
         now = pygame.time.get_ticks()
 
-        ### -- Actualizar laberinto (mutar) cada 5 segundos
+        # Actualizar laberinto (mutar) cada 5 segundos
         if now - time_update_maze >= 5000:
             if laberinto.update_maze():
                 time_update_maze = now
                 print("Laberinto mutó")
 
                 # Si se está resolviendo automáticamente, recalcular el camino
-                if auto_solving:
+                if auto_solving and current_solver:
                     path_index = 0
-                    camino_actual, agente_pos, exito = recalcular_camino(laberinto, solver, agente_pos, salidas_visitadas)
-                    #print("MURO ACTUALIZADO, RECALCULANDO CAMINO ACTUAL\n")
-                    #print(f"camino_actual = {camino_actual}, Agente_pos = {agente_pos}, exito = {exito}")
+                    camino_actual, agente_pos, exito = recalcular_camino( laberinto, current_solver, agente_pos, salidas_visitadas, algorithm_type)
                     if exito:
                         movimiento_agente = True
                         time_move_agent = now
@@ -155,7 +164,7 @@ def main():
                             path_index = 0
 
                             # Recalcular desde esta posición
-                            camino_actual, agente_pos, exito = recalcular_camino( laberinto, solver, agente_pos, salidas_visitadas)
+                            camino_actual, agente_pos, exito = recalcular_camino( laberinto, current_solver, agente_pos, salidas_visitadas, algorithm_type)
                             if exito:
                                 movimiento_agente = True
                                 time_move_agent = now
@@ -196,20 +205,21 @@ def main():
                     screen.blit(agent_moving_img, (tamaño_pixeles * j, tamaño_pixeles * i))
                     continue
                 pygame.draw.rect(screen, color, (tamaño_pixeles * j, tamaño_pixeles * i, tamaño_pixeles, tamaño_pixeles))
-
-                # Borde para las celdas
                 pygame.draw.rect(screen, (128, 128, 128), (tamaño_pixeles * j, tamaño_pixeles * i, tamaño_pixeles, tamaño_pixeles), 1)
 
-        # Mostrar instrucciones y estado
-        font = pygame.font.Font(None, 36)
-        text = font.render("ESPACIO: Resolver laberinto", True, PURPLE)
-        screen.blit(text, (10, 10))
+        # Mostrar instrucciones
+        font = pygame.font.Font(None, 28)
+        instructions = ["A: Weighted A*", "G: Algoritmo Genetico", "R: Reiniciar laberinto"]
+
+        for idx, instruction in enumerate(instructions):
+            text = font.render(instruction, True, PURPLE)
+            screen.blit(text, (10, 10 + idx * 30))
 
         # Mostrar estado del juego
         if auto_solving:
             status = "Resolviendo..." if movimiento_agente else "Calculando..."
             status_text = font.render(status, True, PURPLE)
-            screen.blit(status_text, (10, 50))
+            screen.blit(status_text, (10, 130))
 
             # Mostrar contador de salidas falsas encontradas
             if salidas_visitadas:
