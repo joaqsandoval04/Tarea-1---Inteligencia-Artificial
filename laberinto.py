@@ -37,7 +37,7 @@ def recalcular_camino(laberinto: MazeGenerator, solver, agente_pos, salidas_visi
     if algorithm_type == "astar":
         caminos, exito = solver.solve(lab)
     else:  # genetico
-        caminos, exito = solver.solve(lab, population_size=30, generations=20)
+        caminos, exito = solver.solve(lab, population_size=10, generations=2)
 
     # Restaurar valores de las salidas
     for salida in salidas_visitadas:
