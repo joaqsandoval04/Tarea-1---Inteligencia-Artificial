@@ -164,6 +164,7 @@ class MazeGenerator:
 
     def get_exits_pos(self):
         if np.argwhere(self._laberinto == 3).size == 0:
+            #(self._laberinto)
             salidas = [tuple(map(int, np.argwhere(self._laberinto == 4)[0]))]
         else:
             salidas_1 = [tuple(map(int, pos)) for pos in np.argwhere(self._laberinto == 3)]

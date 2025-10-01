@@ -3,6 +3,8 @@ import numpy as np
 from deap import base, creator, tools
 import time
 
+from maze_generator import MazeGenerator
+
 
 class GeneticAlgorithm:
     def __init__(self, max_movimientos=100):
@@ -12,17 +14,19 @@ class GeneticAlgorithm:
         # Movimientos que puede hacer: arriba, abajo, izquierda, derecha
         self.movimientos = [(-1, 0), (1, 0), (0, -1), (0, 1)]
 
-    def encontrar_entrada(self, laberinto):
-        individuo_pos = np.where(laberinto == 2)
-        return (individuo_pos[0][0], individuo_pos[1][0])
+    def encontrar_entrada(self, laberinto: MazeGenerator):
+        return laberinto.get_agent_pos()
+        #individuo_pos = np.where(laberinto == 2)
+        #return (individuo_pos[0][0], individuo_pos[1][0])
 
     # Busca todas las salidas en la grilla  
-    def encontrar_salidas(self, laberinto):
-        salidas = list(zip(*np.where(laberinto == 3))) + list(zip(*np.where(laberinto == 4)))
-        return salidas
+    def encontrar_salidas(self, laberinto: MazeGenerator):
+        return laberinto.get_exits_pos()
+        #salidas = list(zip(*np.where(laberinto == 3))) + list(zip(*np.where(laberinto == 4)))
+        #return salidas
 
     # Evalúa una secuencia de movimientos hacia una salida en específico
-    def evaluar(self, individuo, laberinto, posicion_inicial, salida):
+    def evaluar(self, individuo, laberinto: MazeGenerator, posicion_inicial, salida):
         posicion_actual = posicion_inicial
         visitado = {posicion_actual}
         num_movimientos = 0
@@ -213,6 +217,11 @@ class GeneticAlgorithm:
 if __name__ == "__main__":
     # Laberinto de ejemplo (5x5)
     # 0 = vacío, 1 = muro, 2 = agente, 3 = salida falsa, 4 = salida real
+
+    size = 10
+    laberinto = MazeGenerator(size)
+    laberinto = laberinto.get_laberinto()
+    """
     laberinto = np.array([
         [1, 1, 1, 1, 1],
         [1, 2, 0, 1, 1],
@@ -220,6 +229,7 @@ if __name__ == "__main__":
         [1, 0, 0, 4, 1],
         [1, 1, 1, 1, 1]
     ])
+    """
 
     ga = GeneticAlgorithm(max_movimientos=20)
     caminos, exito = ga.solve(laberinto, population_size=30, generations=20)

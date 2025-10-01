@@ -150,5 +150,10 @@ class AStar:
                     posicion_actual = salida_encontrada
                     laberinto.set_agent_pos(salida_encontrada)
             else:
-                posicion_actual = salida_encontrada
-                laberinto.set_agent_pos(salida_encontrada)
+                #print("NO HAY SALIDA")
+                #print(f"{laberinto.get_exits_pos()}")
+                #for i in laberinto.get_exits_pos():
+                    #print(f"values = {laberinto.get_obj_in_pos(i)}")
+
+                self.nodos_explorados = total_nodos
+                return todos_los_caminos, True

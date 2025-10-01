@@ -30,7 +30,6 @@ def test_a_star(size,rep):
 
     tamaño_laberinto = laberinto.get_size()
     tamaño_pixeles = int(SIZE[1]) / tamaño_laberinto
-    print(tamaño_pixeles)
 
     # Control de tiempo
     clock = pygame.time.Clock()
@@ -52,10 +51,14 @@ def test_a_star(size,rep):
 
     tiempo_inicio = time.time()
     while total_solves < rep:
-
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                sys.exit()
         now = pygame.time.get_ticks()
 
         if solved:
+            print("============ NUEVO CREADO ============")
+            print(f"============ ITERACION {rep} ============")
             laberinto.create_maze()
             auto_solving = False
             agente_pos = None
@@ -80,7 +83,7 @@ def test_a_star(size,rep):
                 movimiento_agente = True
                 solving = True
 
-        ### -- Actualizar laberinto (mutar) cada 5 segundos
+        ### -- Actualizar laberinto (mutar) cada 0.05 segundos
         if now - time_update_maze >= 50:
             if laberinto.update_maze():
                 time_update_maze = now
@@ -88,7 +91,7 @@ def test_a_star(size,rep):
 
                 # Si se está resolviendo automáticamente, recalcular el camino
                 if auto_solving:
-                    #path_index = 0
+                    path_index = 0
                     camino_actual, agente_pos, exito = recalcular_camino(laberinto, solver, agente_pos, salidas_visitadas)
                     if exito:
                         movimiento_agente = True
@@ -101,8 +104,6 @@ def test_a_star(size,rep):
                 path_index += 1
                 time_move_agent = now
 
-                print(f"Agente en ({int(agente_pos[0])}, {int(agente_pos[1])})")
-
                 # Verifica si el camino se acabó
                 if path_index >= len(camino_actual):
                     movimiento_agente = False
@@ -112,7 +113,7 @@ def test_a_star(size,rep):
                     if agente_pos and maze_data[agente_pos] in [3, 4]:
                         if maze_data[agente_pos] == 4:
                             tiempo_fin = time.time()
-                            duracion = tiempo_fin - tiempo_inicio
+                            duracion = (tiempo_fin - tiempo_inicio)
                             total_time += duracion
                             print(f"✔️ Laberinto resuelto en {duracion} segundos")
                             auto_solving = False
@@ -136,6 +137,7 @@ def test_a_star(size,rep):
                                 auto_solving = False
 
         # Zona de dibujo
+
         screen.fill(WHITE)
         maze_data = laberinto.get_laberinto()
 
@@ -187,12 +189,11 @@ def test_a_star(size,rep):
             if salidas_visitadas:
                 exits_text = font.render(f"Salidas falsas: {len(salidas_visitadas)}", True, PURPLE)
                 screen.blit(exits_text, (10, 90))
-
         # Actualizar pantalla
         pygame.display.flip()
 
     # --- Mostrar resumen final ---
-    print(f"Demoró {total_time*1000} segundos")
+    print(f"Demoró {total_time} segundos")
 
 
-test_a_star(10,100)
+test_a_star(20,100)
